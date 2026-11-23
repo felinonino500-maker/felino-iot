@@ -1,0 +1,79 @@
+<div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#home" aria-label="ESP Portal beranda">
+          <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M9 7h14v18H9z"/><path d="M13 3v4m6-4v4m-6 18v4m6-4v4M5 11h4m14 0h4M5 21h4m14 0h4"/><circle cx="16" cy="16" r="3"/></svg></span>
+          <span class="brand-name">esp<span>portal</span><small>LAB CONSOLE</small></span>
+        </a>
+        <div class="side-caption">WORKSPACE</div>
+        <nav class="nav-list" aria-label="Navigasi utama">
+          <a class="nav-item active" href="#monitor"><span class="nav-icon">⌁</span> Monitor serial <span class="nav-pip"></span></a>
+          <a class="nav-item" href="#firmware"><span class="nav-icon">↑</span> Flash firmware</a>
+        </nav>
+        <div class="side-divider"></div>
+        <div class="side-caption">BOARD AKTIF</div>
+        <div class="side-board"><span class="board-dot"></span><span id="sideBoardName">ESP32 DevKit</span><small id="sideBoardChip">ESP32</small></div>
+        <div class="sidebar-bottom">
+          <div class="browser-note"><span class="note-icon">i</span><span>Butuh Chrome atau Edge desktop dengan Web Serial API.</span></div>
+          <div class="side-version"><span class="version-light"></span> ESP PORTAL <span>v1.0</span></div>
+        </div>
+      </aside>
+
+      <main class="main-content" id="home">
+        <header class="topbar">
+          <div class="crumb"><span>WORKSPACE</span><b>/</b> Serial monitor</div>
+          <div class="top-right"><span class="secure-label"><span class="secure-dot"></span> KONEKSI LOKAL</span><div class="avatar">EP</div></div>
+        </header>
+        <div class="page-wrap">
+          <section class="intro-row">
+            <div>
+              <div class="eyebrow"><span class="eyebrow-line"></span> ESP8266 & ESP32 TOOLKIT</div>
+              <h1>Perangkat di bawah<br class="mobile-break"/> kendali<span class="title-dot">.</span></h1>
+              <p class="intro-copy">Hubungkan board, baca output serial, dan flash firmware dari satu workspace.</p>
+            </div>
+            <div class="hero-chip"><span class="chip-symbol">⌘</span><div><strong>USB SERIAL</strong><small>LANGSUNG DARI BROWSER</small></div></div>
+          </section>
+
+          <app-card class="board-strip panel" aria-labelledby="boardHeading">
+            <div class="strip-heading"><div><div class="section-kicker">01 / PERANGKAT</div><h2 id="boardHeading">Pilih board</h2></div><span class="strip-count">07 <i>PRESET</i></span></div>
+            <div class="board-grid" id="boardGrid" role="listbox" aria-label="Pilih tipe board"></div>
+            <div class="board-foot"><span class="tiny-check">✓</span><span id="boardDescription">Preset membantu mengidentifikasi keluarga chip saat proses flashing.</span><span class="auto-detect">CHIP AUTO-DETECT <span>●</span></span></div>
+          </app-card>
+
+          <section class="connection-row" id="monitor">
+            <div class="connection-info">
+              <div class="section-kicker">02 / PORT SERIAL</div>
+              <div class="connection-title"><span class="connection-indicator" id="connectionIndicator"></span><h2 id="connectionTitle">Belum terhubung</h2></div>
+              <p id="connectionDescription">Pilih board lalu hubungkan USB untuk mulai membaca serial.</p>
+            </div>
+            <div class="connection-actions">
+              <label class="baud-select"><span>BAUD RATE</span><select id="baudRate" aria-label="Baud rate"></select></label>
+              <app-button class="button button-connect" id="connectButton"><span class="usb-icon">↯</span> Hubungkan board</app-button>
+            </div>
+          </section>
+
+          <app-card class="console-panel panel" aria-label="Monitor serial">
+            <div class="console-header"><div class="console-title"><span class="terminal-glyph">›_</span><div><h2>Serial monitor</h2><span id="consoleSubtitle">MENUNGGU KONEKSI USB</span></div></div><div class="console-actions"><span class="live-badge" id="liveBadge"><i></i> IDLE</span><app-button class="icon-button" id="clearLog" title="Bersihkan log" aria-label="Bersihkan log">⌫</app-button><app-button class="icon-button" id="downloadLog" title="Unduh log" aria-label="Unduh log">↓</app-button></div></div>
+            <div class="console-output" id="consoleOutput" role="log" aria-live="polite" aria-label="Output serial"><div class="empty-state" id="emptyState"><div class="empty-terminal">&gt;_</div><strong>Console siap menerima data</strong><span>Hubungkan board untuk melihat output serial di sini.</span></div></div>
+            <div class="console-footer"><div class="console-hint"><span class="keycap">↵</span> kirim perintah ke board</div><form class="serial-form" id="serialForm"><app-input id="serialInput" type="text" placeholder="Ketik perintah serial…" aria-label="Perintah serial" disabled autocomplete="off"></app-input><app-button type="submit" id="sendButton" disabled>Kirim <span>↗</span></app-button></form></div>
+          </app-card>
+
+          <app-card class="firmware-panel panel" id="firmware">
+            <div class="firmware-heading"><div><div class="section-kicker">03 / FLASHER</div><h2>Upload firmware</h2><p>Flash image firmware <code>.bin</code> langsung ke flash memory board.</p></div><div class="flash-illustration" aria-hidden="true"><span>▧</span><i>↗</i></div></div>
+            <div class="firmware-content">
+              <div class="upload-zone" id="uploadZone">
+                <input id="firmwareFile" type="file" accept=".bin,application/octet-stream" hidden />
+                <div class="file-icon">↑</div><div class="upload-copy"><strong id="fileName">Pilih file firmware</strong><span id="fileDetails">Format .bin · Maksimum sesuai kapasitas browser</span></div>
+                <app-button type="button" class="button button-outline" id="chooseFile">Telusuri file</app-button>
+              </div>
+              <div class="flash-options"><label class="offset-field"><span>FLASH ADDRESS</span><div class="input-with-prefix"><span>0x</span><input id="flashAddress" type="text" value="00000" maxlength="8" aria-label="Alamat flash hexadecimal" /></div></label><label class="erase-option"><input type="checkbox" id="eraseFlash" /><span class="custom-check"></span><span><strong>Hapus seluruh flash</strong><small>Hapus data sebelum upload</small></span></label><app-button class="button button-flash" id="flashButton" disabled><span>↑</span> Mulai flash</app-button></div>
+              <div class="progress-wrap" id="progressWrap" hidden><div class="progress-top"><span id="progressLabel">Menyiapkan flasher…</span><strong id="progressPercent">0%</strong></div><div class="progress-track"><div class="progress-bar" id="progressBar"></div></div></div>
+              <div class="flash-message" id="flashMessage" role="status" hidden></div>
+            </div>
+            <div class="firmware-foot"><span class="shield-icon">◇</span><span>Gunakan firmware <code>.bin</code> yang sesuai dengan tipe board dan alamat flash yang benar.</span><app-button class="text-link" id="flashHelp">Panduan flash <span>↗</span></app-button></div>
+          </app-card>
+          <footer class="page-footer"><span>ESP PORTAL <b>·</b> TOOLKIT UNTUK MAKER</span><span>DATA SERIAL TETAP DI PERANGKAT ANDA</span></footer>
+        </div>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <app-modal :show="helpVisible" title="Sebelum mulai flash" @close="helpVisible = false"><div id="flashHelpContent" class="markdown-copy" v-html="window.flashHelpHtml || ''"></div><app-button class="button button-connect" @click="helpVisible = false">Mengerti</app-button></app-modal>

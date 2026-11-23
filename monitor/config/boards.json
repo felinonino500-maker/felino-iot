@@ -1,0 +1,9 @@
+[
+  {"id":"esp8266-nodemcu","name":"ESP8266 NodeMCU","short":"NodeMCU","chip":"ESP8266","glyph":"▤","description":"Preset untuk ESP8266 NodeMCU. Chip akan dideteksi otomatis saat flashing."},
+  {"id":"esp8266-oled","name":"ESP8266 OLED 0.9","short":"ESP8266 OLED","chip":"ESP8266 · OLED","glyph":"▣","description":"Preset untuk ESP8266 dengan layar OLED 0.9 inci."},
+  {"id":"esp32-oled","name":"ESP32 OLED 0.9","short":"ESP32 OLED","chip":"ESP32 · OLED","glyph":"▣","description":"Preset untuk ESP32 dengan layar OLED 0.9 inci."},
+  {"id":"esp32-devkit","name":"ESP32 DevKit","short":"ESP32 DevKit","chip":"ESP32","glyph":"▤","description":"Preset untuk board ESP32 DevKit."},
+  {"id":"wemos-mini","name":"WeMos Mini","short":"WeMos Mini","chip":"ESP8266 · D1","glyph":"▦","description":"Preset untuk WeMos D1 Mini berbasis ESP8266."},
+  {"id":"lolin32-mini","name":"Lolin32 Mini","short":"Lolin32 Mini","chip":"ESP32","glyph":"▦","description":"Preset untuk board Lolin32 Mini berbasis ESP32."},
+  {"id":"esp32cam","name":"esp32cam","short":"ESP32-CAM","chip":"ESP32 · CAM","glyph":"◉","description":"Preset untuk ESP32-CAM. Umumnya memerlukan USB-to-TTL eksternal."}
+]
