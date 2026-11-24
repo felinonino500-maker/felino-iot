@@ -9,3 +9,4 @@
 
 ## [x] Pemilihan dan upload firmware
 - Memilih berkas firmware dan mengunggahnya ke board melalui koneksi serial, dengan indikator progres dan status hasil.
+- Menyediakan pilihan untuk memuat `firmware/esp8266.ino.bin` bawaan portal, hanya mengizinkan target ESP8266, dan memeriksa keluarga chip terdeteksi sebelum menulis image.

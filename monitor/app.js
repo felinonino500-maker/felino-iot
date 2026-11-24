@@ -4,10 +4,12 @@ const $ = (id) => document.getElementById(id);
 const ui = {
   boardGrid: $('boardGrid'), sideBoardName: $('sideBoardName'), sideBoardChip: $('sideBoardChip'), boardDescription: $('boardDescription'),
   connectionIndicator: $('connectionIndicator'), connectionTitle: $('connectionTitle'), connectionDescription: $('connectionDescription'),
+  webserialActivity: $('webserialActivity'), activityLabel: $('activityLabel'), activityElapsed: $('activityElapsed'),
   connectButton: $('connectButton'), baudRate: $('baudRate'), consoleSubtitle: $('consoleSubtitle'), liveBadge: $('liveBadge'),
   consoleOutput: $('consoleOutput'), emptyState: $('emptyState'), clearLog: $('clearLog'), downloadLog: $('downloadLog'),
   serialForm: $('serialForm'), serialInput: $('serialInput'), sendButton: $('sendButton'),
   firmwareFile: $('firmwareFile'), chooseFile: $('chooseFile'), fileName: $('fileName'), fileDetails: $('fileDetails'),
+  useBundledFirmware: $('useBundledFirmware'),
   uploadZone: $('uploadZone'), flashAddress: $('flashAddress'), eraseFlash: $('eraseFlash'), flashButton: $('flashButton'),
   progressWrap: $('progressWrap'), progressLabel: $('progressLabel'), progressPercent: $('progressPercent'), progressBar: $('progressBar'),
   flashMessage: $('flashMessage'), flashHelp: $('flashHelp'), flashHelpContent: $('flashHelpContent'), toast: $('toast'),
@@ -20,9 +22,12 @@ let decoder = new TextDecoder();
 let lineBuffer = '';
 let logHistory = [];
 let chosenFile = null;
+let firmwareOrigin = 'user';
 let connected = false;
 let busy = false;
 let toastTimer;
+let activityTimer = null;
+let activityStartedAt = 0;
 
 function renderBoards() {
   ui.boardGrid.innerHTML = BOARDS.map((board) => `<button type="button" class="board-card${board.id === selectedBoard.id ? ' selected' : ''}" role="option" aria-selected="${board.id === selectedBoard.id}" data-board="${board.id}"><span class="board-glyph" aria-hidden="true">${board.glyph}</span><span class="board-name">${board.name}</span><span class="board-chip">${board.chip}</span></button>`).join('');
@@ -35,6 +40,35 @@ function selectBoard(id) {
   ui.sideBoardChip.textContent = selectedBoard.chip.split(' · ')[0];
   ui.boardDescription.textContent = selectedBoard.description;
   if (connected) addLog(`Board terpilih: ${selectedBoard.name}. Koneksi serial tetap aktif.`, 'warn');
+  refreshFirmwareControls();
+  if (firmwareOrigin === 'bundled-esp8266' && !boardSupportsBundledFirmware()) showFlashMessage('Firmware bawaan ini hanya untuk board ESP8266. Pilih board ESP8266 untuk melanjutkan.', true);
+}
+function boardSupportsBundledFirmware() { return /ESP8266/i.test(selectedBoard?.chip || selectedBoard?.name || ''); }
+function refreshFirmwareControls() {
+  if (ui.useBundledFirmware) ui.useBundledFirmware.disabled = busy || !boardSupportsBundledFirmware();
+  const incompatible = firmwareOrigin === 'bundled-esp8266' && !boardSupportsBundledFirmware();
+  ui.flashButton.disabled = !chosenFile || !connected || busy || incompatible;
+}
+function startWebSerialActivity(label) {
+  ui.webserialActivity.hidden = false;
+  ui.activityLabel.textContent = label;
+  if (activityTimer) return;
+  activityStartedAt = Date.now();
+  const refreshElapsed = () => {
+    const seconds = Math.floor((Date.now() - activityStartedAt) / 1000);
+    ui.activityElapsed.textContent = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+  };
+  refreshElapsed();
+  activityTimer = setInterval(refreshElapsed, 1000);
+}
+function updateWebSerialActivity(label) {
+  if (ui.webserialActivity.hidden) startWebSerialActivity(label);
+  else ui.activityLabel.textContent = label;
+}
+function stopWebSerialActivity() {
+  if (activityTimer) clearInterval(activityTimer);
+  activityTimer = null;
+  ui.webserialActivity.hidden = true;
 }
 function timestamp() { return new Date().toLocaleTimeString('id-ID', { hour12: false }); }
 function addLog(text, type = '') {
@@ -65,7 +99,7 @@ function updateConnection(isConnected) {
   ui.serialInput.disabled = !isConnected || busy;
   ui.sendButton.disabled = !isConnected || busy;
   ui.baudRate.disabled = busy;
-  ui.flashButton.disabled = !chosenFile || !isConnected || busy;
+  refreshFirmwareControls();
 }
 function showToast(message) {
   ui.toast.textContent = message;
@@ -92,8 +126,10 @@ async function connectSerial() {
     addLog('Web Serial API tidak tersedia di browser ini.', 'warn');
     return;
   }
+  startWebSerialActivity('Pilih port serial pada dialog browser…');
   try {
     serialPort = await navigator.serial.requestPort();
+    updateWebSerialActivity('Membuka koneksi serial…');
     await openMonitor(serialPort, Number(ui.baudRate.value));
     updateConnection(true);
     addLog(`Terhubung ke ${selectedBoard.name} pada ${ui.baudRate.value} baud.`);
@@ -104,10 +140,15 @@ async function connectSerial() {
     updateConnection(false);
     showToast(error?.message || 'Tidak dapat membuka port serial.');
     addLog(`Koneksi gagal: ${error?.message || error}`, 'warn');
+  } finally {
+    stopWebSerialActivity();
   }
 }
 async function openMonitor(port, baudRate) {
-  if (!port.readable || !port.writable) await port.open({ baudRate, bufferSize: 4096 });
+  if (!port.readable || !port.writable) {
+    updateWebSerialActivity(`Membuka port pada ${baudRate} baud…`);
+    await port.open({ baudRate, bufferSize: 4096 });
+  }
   serialPort = port;
   decoder = new TextDecoder();
   readSerialLoop();
@@ -153,10 +194,13 @@ async function stopMonitor(closePort = true) {
   }
 }
 async function disconnectSerial() {
-  await stopMonitor(true);
-  serialPort = null;
-  updateConnection(false);
-  addLog('Port serial diputuskan.');
+  startWebSerialActivity('Memutus koneksi serial…');
+  try {
+    await stopMonitor(true);
+    serialPort = null;
+    updateConnection(false);
+    addLog('Port serial diputuskan.');
+  } finally { stopWebSerialActivity(); }
 }
 async function sendSerial(event) {
   event.preventDefault();
@@ -183,13 +227,18 @@ function parseAddress() {
 async function flashFirmware() {
   if (!chosenFile || !serialPort || !connected || busy) return;
   let address;
+  if (firmwareOrigin === 'bundled-esp8266' && !boardSupportsBundledFirmware()) {
+    showFlashMessage('Firmware bawaan ini hanya untuk ESP8266. Pilih board ESP8266 sebelum flashing.', true);
+    return;
+  }
   try { address = parseAddress(); } catch (error) { showFlashMessage(error.message, true); return; }
   if (!chosenFile.name.toLowerCase().endsWith('.bin')) {
     showFlashMessage('Pilih image firmware berformat .bin.', true);
     return;
   }
   busy = true;
-  ui.flashButton.disabled = true;
+  startWebSerialActivity('Menyiapkan port untuk proses flash…');
+  refreshFirmwareControls();
   ui.chooseFile.disabled = true;
   ui.connectButton.disabled = true;
   ui.progressWrap.hidden = false;
@@ -204,21 +253,33 @@ async function flashFirmware() {
     await stopMonitor(true);
     ui.connectionDescription.textContent = 'Port sedang digunakan oleh flasher. Jangan cabut kabel USB.';
     updateProgress(3, 'Memuat flasher ESP…');
+    updateWebSerialActivity('Memuat flasher ESP…');
     const { ESPLoader, Transport } = await import('https://esm.sh/esptool-js@0.7.1');
     transport = new Transport(port, true);
     const terminal = { clean() {}, writeLine(value) { addLog(String(value)); }, write(value) { if (value) addLog(String(value).replace(/\r?\n$/, '')); } };
     esploader = new ESPLoader({ transport, baudrate, terminal, debugLogging: false });
+    updateWebSerialActivity('Menunggu respons bootloader ESP…');
     const chipName = await esploader.main();
+    if (firmwareOrigin === 'bundled-esp8266' && !String(chipName).toUpperCase().includes('ESP8266')) throw new Error(`Firmware bawaan ini untuk ESP8266, tetapi chip yang terdeteksi adalah ${chipName}. Tidak ada data yang ditulis.`);
     addLog(`Chip terdeteksi: ${chipName}.`, 'warn');
     updateProgress(10, `Terhubung ke ${chipName}…`);
+    updateWebSerialActivity(`Chip ${chipName} siap; menulis firmware…`);
     const data = await readFirmwareAsBinary(chosenFile);
     const total = data.length;
+    let lastProgressUpdate = 0;
     await esploader.writeFlash({
       fileArray: [{ data, address }],
+      // Opsi ini wajib pada esptool-js 0.7.1; `keep` mempertahankan header image.
+      flashMode: 'keep',
+      flashFreq: 'keep',
+      flashSize: 'keep',
       eraseAll: ui.eraseFlash.checked,
       compress: true,
       reportProgress: (_fileIndex, written, fileTotal) => {
         const current = fileTotal || total;
+        const now = performance.now();
+        if (written < current && now - lastProgressUpdate < 150) return;
+        lastProgressUpdate = now;
         const percent = 10 + ((written / current) * 87);
         updateProgress(percent, `Menulis firmware · ${formatBytes(written)} / ${formatBytes(current)}`);
       },
@@ -226,6 +287,7 @@ async function flashFirmware() {
     await transport.disconnect();
     transport = null;
     updateProgress(100, 'Firmware berhasil ditulis.');
+    updateWebSerialActivity('Flash selesai; membuka kembali monitor serial…');
     showFlashMessage(`${chosenFile.name} berhasil di-flash ke ${chipName} pada alamat 0x${address.toString(16).toUpperCase()}.`);
     addLog('Flash selesai dengan sukses.', 'warn');
     try {
@@ -258,16 +320,49 @@ async function flashFirmware() {
     }
   } finally {
     busy = false;
+    stopWebSerialActivity();
     ui.chooseFile.disabled = false;
     ui.connectButton.disabled = false;
     if (connected) updateConnection(true);
-    ui.flashButton.disabled = !chosenFile || !connected;
+    refreshFirmwareControls();
   }
 }
 function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+async function loadBundledFirmware() {
+  if (!boardSupportsBundledFirmware()) {
+    showFlashMessage('Firmware bawaan ini hanya tersedia untuk board ESP8266.', true);
+    return;
+  }
+  if (!connected || !serialPort) {
+    showFlashMessage('Hubungkan board ESP8266 terlebih dahulu, lalu tekan Flash firmware ini.', true);
+    return;
+  }
+  ui.useBundledFirmware.disabled = true;
+  try {
+    const response = await fetch('/firmware/esp8266.ino.bin', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Berkas firmware tidak dapat dimuat (HTTP ${response.status}).`);
+    const blob = await response.blob();
+    if (!blob.size) throw new Error('Berkas firmware kosong.');
+    chosenFile = new File([blob], 'esp8266.ino.bin', { type: 'application/octet-stream' });
+    firmwareOrigin = 'bundled-esp8266';
+    ui.flashAddress.value = '00000';
+    ui.fileName.textContent = chosenFile.name;
+    ui.fileDetails.textContent = `${formatBytes(chosenFile.size)} · Firmware bawaan ESP8266 siap dipilih`;
+    ui.flashMessage.hidden = true;
+    ui.progressWrap.hidden = true;
+    refreshFirmwareControls();
+    addLog('Firmware bawaan esp8266.ino.bin dimuat. Flash dimulai setelah validasi chip.', 'warn');
+    await flashFirmware();
+  } catch (error) {
+    console.error(error);
+    showFlashMessage(`Firmware bawaan gagal dimuat: ${error?.message || error}`, true);
+  } finally {
+    refreshFirmwareControls();
+  }
 }
 function handleFirmware(file) {
   if (!file) return;
@@ -277,11 +372,12 @@ function handleFirmware(file) {
     return;
   }
   chosenFile = file;
+  firmwareOrigin = 'user';
   ui.fileName.textContent = file.name;
   ui.fileDetails.textContent = `${formatBytes(file.size)} · Firmware biner siap di-upload`;
   ui.flashMessage.hidden = true;
   ui.progressWrap.hidden = true;
-  ui.flashButton.disabled = !connected || busy;
+  refreshFirmwareControls();
 }
 function clearConsole() {
   ui.consoleOutput.replaceChildren(ui.emptyState);
@@ -319,6 +415,7 @@ ui.clearLog.addEventListener('click', clearConsole);
 ui.downloadLog.addEventListener('click', downloadConsole);
 ui.chooseFile.addEventListener('click', () => ui.firmwareFile.click());
 ui.firmwareFile.addEventListener('change', (event) => handleFirmware(event.target.files?.[0]));
+ui.useBundledFirmware.addEventListener('click', loadBundledFirmware);
 ui.flashButton.addEventListener('click', flashFirmware);
 ui.flashHelp.addEventListener('click', () => window.openFlashHelp?.());
 ui.uploadZone.addEventListener('dragover', (event) => { event.preventDefault(); ui.uploadZone.classList.add('dragover'); });

@@ -44,6 +44,7 @@
               <div class="section-kicker">02 / PORT SERIAL</div>
               <div class="connection-title"><span class="connection-indicator" id="connectionIndicator"></span><h2 id="connectionTitle">Belum terhubung</h2></div>
               <p id="connectionDescription">Pilih board lalu hubungkan USB untuk mulai membaca serial.</p>
+              <div class="webserial-activity" id="webserialActivity" role="status" aria-live="polite" hidden><span class="activity-spinner" aria-hidden="true"></span><div><strong id="activityLabel">Menyiapkan port serial…</strong><small>Waktu proses <span id="activityElapsed">00:00</span></small></div></div>
             </div>
             <div class="connection-actions">
               <label class="baud-select"><span>BAUD RATE</span><select id="baudRate" aria-label="Baud rate"></select></label>
@@ -64,6 +65,10 @@
                 <input id="firmwareFile" type="file" accept=".bin,application/octet-stream" hidden />
                 <div class="file-icon">↑</div><div class="upload-copy"><strong id="fileName">Pilih file firmware</strong><span id="fileDetails">Format .bin · Maksimum sesuai kapasitas browser</span></div>
                 <app-button type="button" class="button button-outline" id="chooseFile">Telusuri file</app-button>
+              </div>
+              <div class="bundled-firmware-option" aria-label="Firmware bawaan">
+                <div class="bundled-firmware-copy"><span>FIRMWARE DALAM PORTAL</span><strong>Firmware ESP8266</strong><small>esp8266.ino.bin · alamat awal 0x00000</small></div>
+                <app-button type="button" class="button button-outline" id="useBundledFirmware">Flash firmware ini</app-button>
               </div>
               <div class="flash-options"><label class="offset-field"><span>FLASH ADDRESS</span><div class="input-with-prefix"><span>0x</span><input id="flashAddress" type="text" value="00000" maxlength="8" aria-label="Alamat flash hexadecimal" /></div></label><label class="erase-option"><input type="checkbox" id="eraseFlash" /><span class="custom-check"></span><span><strong>Hapus seluruh flash</strong><small>Hapus data sebelum upload</small></span></label><app-button class="button button-flash" id="flashButton" disabled><span>↑</span> Mulai flash</app-button></div>
               <div class="progress-wrap" id="progressWrap" hidden><div class="progress-top"><span id="progressLabel">Menyiapkan flasher…</span><strong id="progressPercent">0%</strong></div><div class="progress-track"><div class="progress-bar" id="progressBar"></div></div></div>

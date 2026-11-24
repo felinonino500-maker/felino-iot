@@ -30,8 +30,8 @@ Gunakan Chrome atau Edge versi desktop yang mendukung Web Serial API. Halaman ha
 1. Pilih preset board yang sesuai. Preset membantu mengenali board; chip tetap dideteksi saat flasher berkomunikasi dengan bootloader.
 2. Pilih baud rate. Mulai dengan `115200` jika koneksi tidak stabil atau board sulit masuk mode download.
 3. Tekan **Hubungkan board**, lalu pilih port USB serial pada dialog izin browser. Pemilih port harus dibuka akibat tindakan klik pengguna.
-4. Pilih berkas firmware hasil kompilasi dengan ekstensi `.bin`.
-5. Masukkan alamat flash (offset) yang diberikan oleh paket firmware. Untuk ESP8266, image gabungan sering memakai `0x00000`; firmware ESP32 dapat memerlukan offset lain, misalnya image aplikasi di `0x10000`. Jangan menebak offset: ikuti instruksi pembuat firmware atau file flash/download yang menyertai firmware.
+4. Pilih berkas firmware lokal `.bin`, atau tekan **Flash firmware ini** untuk langsung memuat dan mem-flash `firmware/esp8266.ino.bin`. Tombol firmware bawaan memerlukan koneksi serial aktif, hanya untuk ESP8266, dan chip yang terdeteksi diperiksa sebelum penulisan.
+5. Saat firmware bawaan dipilih, alamat awal diisi `0x00000`. Tetap cocokkan alamat dengan instruksi build/paket yang menghasilkan berkas tersebut. Untuk firmware lokal, masukkan offset yang ditentukan paket; image gabungan ESP8266 sering memakai `0x00000`, sedangkan firmware ESP32 dapat memerlukan offset lain, misalnya image aplikasi di `0x10000`. Jangan menebak offset.
 6. Biarkan **Hapus seluruh flash** tidak dicentang kecuali instruksi firmware meminta penghapusan penuh. Penghapusan dapat menghapus konfigurasi, data, dan partisi lain.
 7. Tekan **Mulai flash**. Halaman menyerahkan port serial ke `esptool-js`, mendeteksi chip, menulis image, dan menampilkan progres. Jangan cabut USB atau menutup halaman sampai hasil berhasil/gagal muncul.
 8. Setelah berhasil, monitor serial dibuka kembali. Tekan tombol RESET/EN pada board bila ingin membaca log boot firmware baru.
